@@ -1,0 +1,81 @@
+---
+title: "Qualitative Assessment of Exercising"
+author: "Manas Sharma"
+date: "March 12, 2016"
+output: html_document
+---
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, we use data from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. Given the data from accelerometers, the goal is to predict the class of action (variable `classe`) which can be one of the following:  
+
+* exactly according to the specification (A)
+* throwing elbows to the front (B)
+* lifting the dumbbell only halfway (C)
+* lowering the dumbbell only halfway (D)
+* throwing the hips to the front (E)
+  
+More information is available from the website [here](http://groupware.les.inf.puc-rio.br/har) (see the section on the Weight Lifting Exercise Dataset).  
+
+## Data  
+The training and test data for this project are available [here](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv) and [here](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv), respectively.  
+```{r, cache=TRUE, message=FALSE}
+library(RCurl)
+train.url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+test.url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+train.data <- read.csv(text=getURL(train.url), na.strings=c("", "NA"))
+test.data <- read.csv(text=getURL(test.url), na.strings=c("", "NA"))
+```
+The first column is the Index variable and hence can be omitted from the data set.  
+```{r}
+train.data$X <- NULL
+```
+Similarly, the user and time information should not have any effect on whether barbell lifts are performed correctly or not.
+```{r}
+col.rm <- c("user_name", "raw_timestamp_part_1",
+                    "raw_timestamp_part_2", "cvtd_timestamp")
+for (col in col.rm) {
+    train.data[, col] <- NULL
+}
+```
+Many of the columns in the data set have majority of missing values. Therefore, we will remove these columns (or, features) from our training and test data sets since imputation is not an option.
+```{r}
+col.NAs <- apply(train.data, 2, function(x) {sum(is.na(x))})
+train.data <- train.data[, which(col.NAs == 0)]
+```
+Some of the variables have near constant values, i.e. almost zero variance. Hence, we can remove these zero variance predictors from our data since they have few unique values relative to the number of observations.
+```{r, message=FALSE}
+library(caret)
+nsv <- nearZeroVar(train.data)
+train.data <- train.data[-nsv]
+test.data <- test.data[-nsv]
+```
+The final set of predictors used for classification are:
+```{r}
+names(train.data)
+```
+
+## Model  
+We will use Random Forest classifier to predict the action class. To measure the accuracy of the model, we will perform a 10-fold cross validation with 80:20 split on each fold, i.e. 80% of the data will be used for training and remaining 20% will be used for testing.
+```{r, cache=TRUE, message=FALSE}
+library(randomForest)
+set.seed(123)
+obs <- c()
+preds <- c()
+for(i in 1:10) {
+    intrain = sample(1:dim(train.data)[1], size=dim(train.data)[1] * 0.8, replace=F)
+    train.cross = train.data[intrain,]
+    test.cross = train.data[-intrain,]
+    rf <- randomForest(classe ~ ., data=train.cross)
+    obs <- c(obs, test.cross$classe)
+    preds <- c(preds, predict(rf, test.cross))
+}
+```
+The confusion matrix for predictions on cross validation folds is:
+```{r}
+conf.mat <- confusionMatrix(table(preds, obs))
+conf.mat$table
+```
+The model seems to be classifying well enough, with the accuracy of `r round(conf.mat$overall[[1]]*100, 2)`%. Finally, let's train the random forest on the entire data set so that the model can be used to predict the class of an action, given a set of activity measurements.
+```{r, cache=TRUE, message=FALSE}
+library(randomForest)
+model <- randomForest(classe ~ ., data=train.data)
+```
