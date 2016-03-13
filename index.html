@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Practicalmachinelearning by sharmanas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Practicalmachinelearning</h1>
+      <h2 class="project-tagline">Repository for JHU Coursera Practical Machine Learning Project</h2>
+      <a href="https://github.com/sharmanas/practicalmachinelearning" class="btn">View on GitHub</a>
+      <a href="https://github.com/sharmanas/practicalmachinelearning/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/sharmanas/practicalmachinelearning/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <hr>
+
+<p>title: "Qualitative Assessment of Exercising"
+author: "Manas Sharma"
+date: "March 12, 2016"</p>
+
+<h2>
+<a id="output-html_document" class="anchor" href="#output-html_document" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>output: html_document</h2>
+
+<p>Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, we use data from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. Given the data from accelerometers, the goal is to predict the class of action (variable <code>classe</code>) which can be one of the following:  </p>
+
+<ul>
+<li>exactly according to the specification (A)</li>
+<li>throwing elbows to the front (B)</li>
+<li>lifting the dumbbell only halfway (C)</li>
+<li>lowering the dumbbell only halfway (D)</li>
+<li>throwing the hips to the front (E)</li>
+</ul>
+
+<p>More information is available from the website <a href="http://groupware.les.inf.puc-rio.br/har">here</a> (see the section on the Weight Lifting Exercise Dataset).  </p>
+
+<h2>
+<a id="data" class="anchor" href="#data" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Data</h2>
+
+<p>The training and test data for this project are available <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv">here</a> and <a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv">here</a>, respectively.  </p>
+
+<div class="highlight highlight-source-r"><pre>library(<span class="pl-smi">RCurl</span>)
+<span class="pl-smi">train.url</span> <span class="pl-k">&lt;-</span> <span class="pl-s"><span class="pl-pds">"</span>https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv<span class="pl-pds">"</span></span>
+<span class="pl-smi">test.url</span> <span class="pl-k">&lt;-</span> <span class="pl-s"><span class="pl-pds">"</span>https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv<span class="pl-pds">"</span></span>
+<span class="pl-smi">train.data</span> <span class="pl-k">&lt;-</span> read.csv(<span class="pl-v">text</span><span class="pl-k">=</span>getURL(<span class="pl-smi">train.url</span>), <span class="pl-v">na.strings</span><span class="pl-k">=</span>c(<span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>NA<span class="pl-pds">"</span></span>))
+<span class="pl-smi">test.data</span> <span class="pl-k">&lt;-</span> read.csv(<span class="pl-v">text</span><span class="pl-k">=</span>getURL(<span class="pl-smi">test.url</span>), <span class="pl-v">na.strings</span><span class="pl-k">=</span>c(<span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>NA<span class="pl-pds">"</span></span>))</pre></div>
+
+<p>The first column is the Index variable and hence can be omitted from the data set.  </p>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">train.data</span><span class="pl-k">$</span><span class="pl-smi">X</span> <span class="pl-k">&lt;-</span> <span class="pl-c1">NULL</span></pre></div>
+
+<p>Similarly, the user and time information should not have any effect on whether barbell lifts are performed correctly or not.</p>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">col.rm</span> <span class="pl-k">&lt;-</span> c(<span class="pl-s"><span class="pl-pds">"</span>user_name<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>raw_timestamp_part_1<span class="pl-pds">"</span></span>,
+                    <span class="pl-s"><span class="pl-pds">"</span>raw_timestamp_part_2<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>cvtd_timestamp<span class="pl-pds">"</span></span>)
+<span class="pl-k">for</span> (<span class="pl-smi">col</span> <span class="pl-k">in</span> <span class="pl-smi">col.rm</span>) {
+    <span class="pl-smi">train.data</span>[, <span class="pl-smi">col</span>] <span class="pl-k">&lt;-</span> <span class="pl-c1">NULL</span>
+}</pre></div>
+
+<p>Many of the columns in the data set have majority of missing values. Therefore, we will remove these columns (or, features) from our training and test data sets since imputation is not an option.</p>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">col.NAs</span> <span class="pl-k">&lt;-</span> apply(<span class="pl-smi">train.data</span>, <span class="pl-c1">2</span>, <span class="pl-k">function</span>(<span class="pl-smi">x</span>) {sum(is.na(<span class="pl-smi">x</span>))})
+<span class="pl-smi">train.data</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">train.data</span>[, which(<span class="pl-smi">col.NAs</span> <span class="pl-k">==</span> <span class="pl-c1">0</span>)]</pre></div>
+
+<p>Some of the variables have near constant values, i.e. almost zero variance. Hence, we can remove these zero variance predictors from our data since they have few unique values relative to the number of observations.</p>
+
+<div class="highlight highlight-source-r"><pre>library(<span class="pl-smi">caret</span>)
+<span class="pl-smi">nsv</span> <span class="pl-k">&lt;-</span> nearZeroVar(<span class="pl-smi">train.data</span>)
+<span class="pl-smi">train.data</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">train.data</span>[<span class="pl-k">-</span><span class="pl-smi">nsv</span>]
+<span class="pl-smi">test.data</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">test.data</span>[<span class="pl-k">-</span><span class="pl-smi">nsv</span>]</pre></div>
+
+<p>The final set of predictors used for classification are:</p>
+
+<div class="highlight highlight-source-r"><pre>names(<span class="pl-smi">train.data</span>)</pre></div>
+
+<h2>
+<a id="model" class="anchor" href="#model" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Model</h2>
+
+<p>We will use Random Forest classifier to predict the action class. To measure the accuracy of the model, we will perform a 10-fold cross validation with 80:20 split on each fold, i.e. 80% of the data will be used for training and remaining 20% will be used for testing.</p>
+
+<div class="highlight highlight-source-r"><pre>library(<span class="pl-smi">randomForest</span>)
+set.seed(<span class="pl-c1">123</span>)
+<span class="pl-smi">obs</span> <span class="pl-k">&lt;-</span> c()
+<span class="pl-smi">preds</span> <span class="pl-k">&lt;-</span> c()
+<span class="pl-k">for</span>(<span class="pl-smi">i</span> <span class="pl-k">in</span> <span class="pl-c1">1</span><span class="pl-k">:</span><span class="pl-c1">10</span>) {
+    <span class="pl-v">intrain</span> <span class="pl-k">=</span> sample(<span class="pl-c1">1</span><span class="pl-k">:</span>dim(<span class="pl-smi">train.data</span>)[<span class="pl-c1">1</span>], <span class="pl-v">size</span><span class="pl-k">=</span>dim(<span class="pl-smi">train.data</span>)[<span class="pl-c1">1</span>] <span class="pl-k">*</span> <span class="pl-c1">0.8</span>, <span class="pl-v">replace</span><span class="pl-k">=</span><span class="pl-c1">F</span>)
+    <span class="pl-v">train.cross</span> <span class="pl-k">=</span> <span class="pl-smi">train.data</span>[<span class="pl-smi">intrain</span>,]
+    <span class="pl-v">test.cross</span> <span class="pl-k">=</span> <span class="pl-smi">train.data</span>[<span class="pl-k">-</span><span class="pl-smi">intrain</span>,]
+    <span class="pl-smi">rf</span> <span class="pl-k">&lt;-</span> randomForest(<span class="pl-smi">classe</span> <span class="pl-k">~</span> ., <span class="pl-v">data</span><span class="pl-k">=</span><span class="pl-smi">train.cross</span>)
+    <span class="pl-smi">obs</span> <span class="pl-k">&lt;-</span> c(<span class="pl-smi">obs</span>, <span class="pl-smi">test.cross</span><span class="pl-k">$</span><span class="pl-smi">classe</span>)
+    <span class="pl-smi">preds</span> <span class="pl-k">&lt;-</span> c(<span class="pl-smi">preds</span>, predict(<span class="pl-smi">rf</span>, <span class="pl-smi">test.cross</span>))
+}</pre></div>
+
+<p>The confusion matrix for predictions on cross validation folds is:</p>
+
+<div class="highlight highlight-source-r"><pre><span class="pl-smi">conf.mat</span> <span class="pl-k">&lt;-</span> confusionMatrix(table(<span class="pl-smi">preds</span>, <span class="pl-smi">obs</span>))
+<span class="pl-smi">conf.mat</span><span class="pl-k">$</span><span class="pl-smi">table</span></pre></div>
+
+<p>The model seems to be classifying well enough, with the accuracy of <code>r round(conf.mat$overall[[1]]*100, 2)</code>%. Finally, let's train the random forest on the entire data set so that the model can be used to predict the class of an action, given a set of activity measurements.</p>
+
+<div class="highlight highlight-source-r"><pre>library(<span class="pl-smi">randomForest</span>)
+<span class="pl-smi">model</span> <span class="pl-k">&lt;-</span> randomForest(<span class="pl-smi">classe</span> <span class="pl-k">~</span> ., <span class="pl-v">data</span><span class="pl-k">=</span><span class="pl-smi">train.data</span>)</pre></div>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/sharmanas/practicalmachinelearning">Practicalmachinelearning</a> is maintained by <a href="https://github.com/sharmanas">sharmanas</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
